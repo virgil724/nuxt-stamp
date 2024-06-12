@@ -1,90 +1,103 @@
 <template>
-  <div class="customer container" ref="el" @click="handleClick">
-    <div class="box" :style="{ top: y - 25 + 'px', left: x - 25 + 'px' }"></div>
-    <div
-      v-for="(element, index) in elements"
-      :key="index"
-      class="created-element"
-      :style="{ top: `${element.y-25}px`, left: `${element.x-25}px` }"
-    >
-      New Element
-    </div>
+  <div class="flex flex-row bg-transparent">
+    <UContainer class="basis-1/5 flex flex-col py-3 gap-3">
+      <ClientOnly>
+        <UButton
+          :icon="
+            isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'
+          "
+          color="gray"
+          variant="ghost"
+          aria-label="Theme"
+          @click="isDark = !isDark"
+        />
+        <template #fallback>
+          <div class="w-8 h-8" />
+        </template>
+      </ClientOnly>
+
+      <UTabs
+        :items="tabItems"
+        v-model="tabSelect"
+        orientation="vertical"
+        v-if="tabItems.length > 0"
+      >
+      </UTabs>
+
+      <UButtonGroup orientation="horizontal">
+        <UInput class="grow" v-model="CardName" />
+        <UButton
+          icon="i-heroicons-plus-circle-16-solid"
+          @click="
+            tabItems.push({
+              label: CardName,
+              stamp: [],
+            })
+          "
+        />
+      </UButtonGroup>
+      <UButton
+        v-if="tabItems.length > 0"
+        icon="i-heroicons-document-duplicate"
+        @click="copy(jsonToCsv(tabItems))"
+        >Copy Data</UButton
+      >
+      <UBadge class="text-center" v-if="tabItems.length > 0">
+        {{ copied ? "Copied" : "Copy" }}
+      </UBadge>
+    </UContainer>
+    <UContainer class="basis-4/5">
+      <div v-for="(item, index) in tabItems">
+        <PointCard
+          @deleteCard="deleteCard(index)"
+          v-if="index == tabSelect"
+          :key="index"
+          v-model:stampData="item.stamp"
+        >
+        </PointCard>
+      </div>
+    </UContainer>
   </div>
-  {{ elementY }}
-  {{ elementX }}
-  {{ isOutside }}
 </template>
 
 <script setup>
-const el = ref(null);
+import { useStorage } from "@vueuse/core";
 
-const { isOutside, elementX, elementY, elementHeight, elementWidth } =
-  useMouseInElement(el);
-const x = computed(() => {
-  return Math.min(Math.max(elementX.value, 25), elementWidth.value - 25);
+const colorMode = useColorMode();
+const isDark = computed({
+  get() {
+    return colorMode.value === "dark";
+  },
+  set() {
+    colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
+  },
 });
 
-const y = computed(() => {
-  return Math.min(Math.max(elementY.value, 25), elementHeight.value - 25);
-});
-const elements = reactive([]);
+const CardName = ref(null);
+const tabItems = useStorage("card-data", []);
 
-const handleClick = (event) => {
-      const containerRect = el.value.getBoundingClientRect();
-      let mouseX = event.clientX - containerRect.left;
-      let mouseY = event.clientY - containerRect.top;
+const tabSelect = ref(-1);
+const { text, copy, copied, isSupported } = useClipboard();
+const deleteCard = (index) => {
+  tabItems.value.splice(index, 1);
 
-      const elementWidth = 50;  // Assuming the new element's width is 50px
-      const elementHeight = 50; // Assuming the new element's height is 50px
+  tabSelect.value = -1;
+};
+const jsonToCsv = (json) => {
+  // Define the CSV headers
+  const headers = ["username", "stamp_count"];
+  const csvRows = [headers.join(",")];
 
-      // Constrain the initial position within the container
-      mouseX = Math.min(Math.max(mouseX, 25), containerRect.width - elementWidth);
-      mouseY = Math.min(Math.max(mouseY, 25), containerRect.height - elementHeight);
+  // Process each entry in the JSON
+  json.forEach((entry) => {
+    const label = entry.label;
+    const stampCount = entry.stamp.length > 5 ? 5 : entry.stamp.length;
+    const row = [label, stampCount];
+    csvRows.push(row.join(","));
+  });
 
-      // Check for collisions and remove colliding elements
-      const collidingIndexes = [];
-      elements.forEach((el, index) => {
-        const isColliding = !(mouseX + elementWidth < el.x || mouseX > el.x + elementWidth ||
-                              mouseY + elementHeight < el.y || mouseY > el.y + elementHeight);
-        if (isColliding) {
-          collidingIndexes.push(index);
-        }
-      });
-
-      // Remove colliding elements
-      for (let i = collidingIndexes.length - 1; i >= 0; i--) {
-        elements.splice(collidingIndexes[i], 1);
-      }
-
-      // Add the new element to the elements array
-      elements.push({ x: mouseX, y: mouseY });
-    };
+  // Join the rows with newlines
+  return csvRows.join("\n");
+};
 </script>
-<style>
-div.customer {
-  width: 100%;
-  height: 30vh;
-  border: 3px solid;
-}
-.created-element {
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  background-color: blue;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.container {
-  position: relative;
-  top: 250px;
-}
-.box {
-  width: 50px;
-  height: 50px;
-  border: 3px solid green;
-  position: absolute;
-  top: 5px;
-}
-</style>
+<style></style>

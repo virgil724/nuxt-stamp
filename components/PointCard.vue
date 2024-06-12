@@ -1,33 +1,47 @@
 <template>
-  <div class="customer container" ref="el" @click="handleClick">
-    <img src="/assets/card.png" />
-    <div
-      class="box"
-      :style="{
-        top: y - stampSize / 2 + 'px',
-        left: x - stampSize / 2 + 'px',
-        width: `${stampSize}px`,
-        height: `${stampSize}px`,
-      }"
-    ></div>
-    <div
-      v-for="(element, index) in elements"
-      :key="index"
-      class="created-element"
-      :style="{
-        top: `${element.y - stampSize / 2}px`,
-        left: `${element.x - stampSize / 2}px`,
-        width: `${stampSize}px`,
-        height: `${stampSize}px`,
-      }"
-    >
-      <img src="/assets/stamp.png" />
+  <div class="container pb-10">
+    <div class="customer container" ref="el" @click="handleClick">
+      <slot></slot>
+      <img src="/assets/card.png" />
+      <div
+        class="box"
+        :style="{
+          top: y - stampSize / 2 + 'px',
+          left: x - stampSize / 2 + 'px',
+          width: `${stampSize}px`,
+          height: `${stampSize}px`,
+          display: isOutside ? 'none' : '',
+        }"
+      ></div>
+
+      <div
+        v-for="(element, index) in elements"
+        :key="index"
+        class="created-element"
+        :style="{
+          top: `${element.y - stampSize / 2}px`,
+          left: `${element.x - stampSize / 2}px`,
+          width: `${stampSize}px`,
+          height: `${stampSize}px`,
+        }"
+      >
+        <img src="/assets/stamp.png" />
+      </div>
+    </div>
+    <div class="button-location flex flex-row gap-2">
+      <UButton @click="$emit('deleteCard')" icon="i-heroicons-trash"></UButton>
+      <UButton
+        @click="elements.pop()"
+        icon="i-heroicons-arrow-uturn-down"
+      ></UButton>
     </div>
   </div>
 </template>
 
-<script  setup>
+<script setup>
+const emit = defineEmits(["deleteCard"]);
 const el = ref(null);
+
 const { width, height } = useElementSize(el);
 const stampSize = computed(() => width.value * 0.18);
 const { isOutside, elementX, elementY, elementHeight, elementWidth } =
@@ -45,7 +59,8 @@ const y = computed(() => {
     elementHeight.value - stampSize.value / 2
   );
 });
-const elements = reactive([]);
+
+const elements = defineModel("stampData");
 
 const handleClick = (event) => {
   const containerRect = el.value.getBoundingClientRect();
@@ -66,7 +81,7 @@ const handleClick = (event) => {
   );
 
   const collidingIndexes = [];
-  elements.forEach((el, index) => {
+  elements.value.forEach((el, index) => {
     const dx = mouseX - el.x;
     const dy = mouseY - el.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -77,17 +92,17 @@ const handleClick = (event) => {
 
   // Remove colliding elements
   for (let i = collidingIndexes.length - 1; i >= 0; i--) {
-    elements.splice(collidingIndexes[i], 1);
+    elements.value.splice(collidingIndexes[i], 1);
   }
 
   // Add the new element to the elements array
-  elements.push({ x: mouseX, y: mouseY });
+  elements.value.push({ x: mouseX, y: mouseY });
 };
 </script>
 
 <style>
 div.customer {
-  border: 10px solid greenyellow;
+  /* border: 10px solid greenyellow; */
 }
 .created-element {
   position: absolute;
@@ -103,9 +118,13 @@ div.customer {
 }
 .box {
   border-radius: 50%;
-
-  border: 3px solid green;
+  border: 3px dashed green;
   position: absolute;
   top: 5px;
+}
+.button-location {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
 }
 </style>

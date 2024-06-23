@@ -1,39 +1,29 @@
 <template>
   <div class="container pb-10">
     <div class="customer container" ref="el" @click="handleClick">
-      <slot></slot>
-      <img src="/assets/card.png" />
-      <div
-        class="box"
-        :style="{
-          top: y - stampSize / 2 + 'px',
-          left: x - stampSize / 2 + 'px',
-          width: `${stampSize}px`,
-          height: `${stampSize}px`,
-          display: isOutside ? 'none' : '',
-        }"
-      ></div>
+      <img v-if="Img.cardImg" :src="Img.cardImg">
+      <img src="/assets/card.png" v-else />
+      <div class="box" :style="{
+        top: y - stampSize / 2 + 'px',
+        left: x - stampSize / 2 + 'px',
+        width: `${stampSize}px`,
+        height: `${stampSize}px`,
+        display: isOutside ? 'none' : '',
+      }"></div>
 
-      <div
-        v-for="(element, index) in elements"
-        :key="index"
-        class="created-element"
-        :style="{
-          top: `${element.y - stampSize / 2}px`,
-          left: `${element.x - stampSize / 2}px`,
-          width: `${stampSize}px`,
-          height: `${stampSize}px`,
-        }"
-      >
-        <img src="/assets/stamp.png" />
+      <div v-for="(element, index) in elements" :key="index" class="created-element" :style="{
+        top: `${element.y - stampSize / 2}px`,
+        left: `${element.x - stampSize / 2}px`,
+        width: `${stampSize}px`,
+        height: `${stampSize}px`,
+      }">
+        <img v-if="Img.stampImg" :src="Img.stampImg">
+        <img src="/assets/stamp.png" v-else />
       </div>
     </div>
     <div class="button-location flex flex-row gap-2">
       <UButton @click="$emit('deleteCard')" icon="i-heroicons-trash"></UButton>
-      <UButton
-        @click="elements.pop()"
-        icon="i-heroicons-arrow-uturn-down"
-      ></UButton>
+      <UButton @click="elements.pop()" icon="i-heroicons-arrow-uturn-down"></UButton>
     </div>
   </div>
 </template>
@@ -41,9 +31,16 @@
 <script setup>
 const emit = defineEmits(["deleteCard"]);
 const el = ref(null);
-
+const { Img } = defineProps(['Img'])
 const { width, height } = useElementSize(el);
-const stampSize = computed(() => width.value * 0.18);
+const stampSize = computed(() => {
+  if (Img.stampSize) {
+    return width.value * Img.stampSize / 100
+  }
+  else {
+    return width.value * 0.18
+  }
+});
 const { isOutside, elementX, elementY, elementHeight, elementWidth } =
   useMouseInElement(el);
 const x = computed(() => {
@@ -104,6 +101,7 @@ const handleClick = (event) => {
 div.customer {
   /* border: 10px solid greenyellow; */
 }
+
 .created-element {
   position: absolute;
   border-radius: 50%;
@@ -113,15 +111,18 @@ div.customer {
   align-items: center;
   justify-content: center;
 }
+
 .container {
   position: relative;
 }
+
 .box {
   border-radius: 50%;
   border: 3px dashed green;
   position: absolute;
   top: 5px;
 }
+
 .button-location {
   position: absolute;
   right: 0px;
